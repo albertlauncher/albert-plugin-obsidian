@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="obsidian-note-add">resources/obsidian-note-add.svg</file>
+        <file alias="obsidian-note">resources/obsidian-note.svg</file>
+        <file alias="obsidian-vault">resources/obsidian-vault.svg</file>
+    </qresource>
+</RCC>
