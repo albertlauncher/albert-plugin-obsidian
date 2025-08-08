@@ -1,0 +1,9 @@
+{
+    "authors": ["@manuelschneid3r"],
+    "description": "Search Obsidian notes",
+    "description[de]": "Suche Obsidian-Notizen",
+    "license": "MIT",
+    "maintainers": ["@manuelschneid3r"],
+    "name": "Obsidian",
+    "url": "https://github.com/albertlauncher/albert-plugin-obsidian",
+}
