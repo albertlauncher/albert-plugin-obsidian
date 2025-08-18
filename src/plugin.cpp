@@ -153,9 +153,15 @@ void VaultItem::onDirectoryChanged()
 
 static vector<shared_ptr<VaultItem>> getVaults()
 {
-    vector<shared_ptr<VaultItem>> vaults;
-    auto obsidian_json = albert::dataLocation().parent_path() / "obsidian" / "obsidian.json";
+    auto obsidian_json =
+#ifdef Q_OS_MAC
+        albert::dataLocation().parent_path();
+#elifdef Q_OS_UNIX
+        albert::configLocation().parent_path();
+#endif
+    obsidian_json = obsidian_json / "obsidian" / "obsidian.json";
 
+    vector<shared_ptr<VaultItem>> vaults;
     if (!exists(obsidian_json))
         throw runtime_error("Obsidian JSON file not found at " + obsidian_json.string());
 
