@@ -1,4 +1,4 @@
-# albert-plugin-obsidian
+# Albert plugin: Obsidian
 
 ## Features
 
