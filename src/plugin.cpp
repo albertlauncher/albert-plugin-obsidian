@@ -68,6 +68,10 @@ public:
             u"search"_s, Plugin::tr("Search"),
             [this] { openUrl(u"obsidian://search?vault=%1"_s.arg(percentEncoded(identifier))); }
             );
+        actions.emplace_back(
+            u"openfm"_s, Plugin::tr("Open in file manager"),
+            [this] { open(path); }
+            );
         return actions;
     }
 
