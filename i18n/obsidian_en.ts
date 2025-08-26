@@ -19,5 +19,9 @@
         <source>Create new note in &apos;%1&apos;</source>
         <translation></translation>
     </message>
+    <message>
+        <source>Open in file manager</source>
+        <translation></translation>
+    </message>
 </context>
 </TS>

@@ -16,16 +16,12 @@
         <translation>Durchsuchen</translation>
     </message>
     <message>
-        <source>Note</source>
-        <translation type="vanished">Notiz</translation>
-    </message>
-    <message>
-        <source>Create new note in vault &apos;%1&apos;</source>
-        <translation type="vanished">Neue Notiz in Vault &apos;%1&apos; erstellen</translation>
-    </message>
-    <message>
         <source>Create new note in &apos;%1&apos;</source>
         <translation>Neue Notiz in &apos;%1&apos; erstellen</translation>
+    </message>
+    <message>
+        <source>Open in file manager</source>
+        <translation>In Dateimanager öffnen</translation>
     </message>
 </context>
 </TS>
