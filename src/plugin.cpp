@@ -11,6 +11,7 @@
 #include <QUrl>
 #include <albert/albert.h>
 #include <albert/logging.h>
+#include <albert/networkutil.h>
 #include <albert/standarditem.h>
 #include <albert/systemutil.h>
 ALBERT_LOGGING_CATEGORY("obsidian")
@@ -19,9 +20,6 @@ using namespace albert::util;
 using namespace albert;
 using namespace std;
 class NoteItem;
-
-static QString percentEncoded(const QString &s)
-{ return QString::fromUtf8(QUrl::toPercentEncoding(s)); }
 
 class VaultItem : public QObject,
                   public enable_shared_from_this<VaultItem>,
