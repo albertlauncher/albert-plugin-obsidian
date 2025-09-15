@@ -14,6 +14,8 @@
 #include <albert/networkutil.h>
 #include <albert/standarditem.h>
 #include <albert/systemutil.h>
+#include <filesystem>
+#include <cstdlib>
 ALBERT_LOGGING_CATEGORY("obsidian")
 using namespace Qt::StringLiterals;
 using namespace albert::util;
@@ -155,19 +157,45 @@ void VaultItem::onDirectoryChanged()
 
 static vector<shared_ptr<VaultItem>> getVaults()
 {
-    auto obsidian_json =
+    // Try multiple possible locations for obsidian.json
+    vector<std::filesystem::path> possible_paths;
+    
 #ifdef Q_OS_MAC
-        albert::dataLocation().parent_path();
+    auto base_path = albert::dataLocation().parent_path();
+    possible_paths.push_back(base_path / "obsidian" / "obsidian.json");
 #elifdef Q_OS_UNIX
-        albert::configLocation().parent_path();
+    auto base_path = albert::configLocation().parent_path();
+    possible_paths.push_back(base_path / "obsidian" / "obsidian.json");
+    
+    // Add Flatpak location for Obsidian
+    auto home_path = std::filesystem::path(getenv("HOME") ? getenv("HOME") : "");
+    if (!home_path.empty()) {
+        possible_paths.push_back(home_path / ".var/app/md.obsidian.Obsidian/config/obsidian/obsidian.json");
+    }
 #endif
-    obsidian_json = obsidian_json / "obsidian" / "obsidian.json";
+
+    std::filesystem::path obsidian_json;
+    bool found = false;
+    
+    // Check each possible path
+    for (const auto& path : possible_paths) {
+        if (std::filesystem::exists(path)) {
+            obsidian_json = path;
+            found = true;
+            break;
+        }
+    }
 
     vector<shared_ptr<VaultItem>> vaults;
-    if (!exists(obsidian_json))
-        throw runtime_error("Obsidian JSON file not found at " + obsidian_json.string());
+    if (!found) {
+        string error_msg = "Obsidian JSON file not found. Checked locations:";
+        for (const auto& path : possible_paths) {
+            error_msg += "\n  " + path.string();
+        }
+        throw runtime_error(error_msg);
+    }
 
-    QFile file(obsidian_json);
+    QFile file(QString::fromStdString(obsidian_json.string()));
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         QJsonParseError error;
