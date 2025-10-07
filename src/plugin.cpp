@@ -10,16 +10,17 @@
 #include <QJsonObject>
 #include <QUrl>
 #include <albert/albert.h>
+#include <albert/iconutil.h>
 #include <albert/logging.h>
 #include <albert/networkutil.h>
 #include <albert/standarditem.h>
 #include <albert/systemutil.h>
 ALBERT_LOGGING_CATEGORY("obsidian")
+class NoteItem;
 using namespace Qt::StringLiterals;
 using namespace albert::util;
 using namespace albert;
 using namespace std;
-class NoteItem;
 
 class VaultItem : public QObject,
                   public enable_shared_from_this<VaultItem>,
@@ -53,7 +54,7 @@ public:
 
     QString subtext() const override { return path; }
 
-    QStringList iconUrls() const override { return {u":obsidian-vault"_s}; }
+    unique_ptr<Icon> icon() const override { return makeImageIcon(u":obsidian-vault"_s); }
 
     vector<Action> actions() const override
     {
@@ -100,8 +101,8 @@ public:
     QString subtext() const override
     { return u"%1 · %2"_s.arg(vault->getName(), path); }
 
-    QStringList iconUrls() const override
-    { return {u":obsidian-note"_s}; }
+    unique_ptr<Icon> icon() const override
+    { return makeImageIcon(u":obsidian-note"_s); }
 
     vector<Action> actions() const override
     {
@@ -222,7 +223,7 @@ void Plugin::handleTriggerQuery(albert::Query &query)
                 u"new"_s,
                 tr("Create new note in '%1'").arg(v->getName()),
                 u"%1 · %2"_s.arg(QFileInfo(v->getName()).filePath(), trimmed + u".md"_s),
-                {u":obsidian-note-add"_s},
+                []{ return makeImageIcon(u":obsidian-note-add"_s); },
                 {{
                     u"create"_s,
                     tr("Create"),
