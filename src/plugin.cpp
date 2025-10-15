@@ -162,12 +162,15 @@ static vector<shared_ptr<VaultItem>> getVaults()
         albert::dataLocation().parent_path();
 #elifdef Q_OS_UNIX
         albert::configLocation().parent_path();
+    if (!exists(obsidian_json))
+        obsidian_json = QDir::home().filesystemPath() / ".var" / "app" / "md.obsidian.Obsidian" / "config";
 #endif
     obsidian_json = obsidian_json / "obsidian" / "obsidian.json";
 
-    vector<shared_ptr<VaultItem>> vaults;
     if (!exists(obsidian_json))
         throw runtime_error("Obsidian JSON file not found at " + obsidian_json.string());
+
+    vector<shared_ptr<VaultItem>> vaults;
 
     QFile file(obsidian_json);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))

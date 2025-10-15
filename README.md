@@ -12,6 +12,12 @@
     - Open note.
 - Create new notes with filename or path with triggered query.
 
+## Supported platforms
+
+- macOS
+- XDG
+- Flatpak
+
 ## Technical notes  
 
 Uses [Obsidian URIs](https://help.obsidian.md/Extending+Obsidian/Obsidian+URI) to interface Obsidian.
