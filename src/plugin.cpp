@@ -142,7 +142,8 @@ void VaultItem::onDirectoryChanged()
     notes_.clear();
 
     for (const auto &dir : as_const(dirs))
-        for (const auto &file : QDir(dir).entryList(QDir::Files))
+        for (const auto files = QDir(dir).entryList(QDir::Files);
+             const auto &file : files)
         {
             const auto relative_path = QDir(path).relativeFilePath(QDir(dir).filePath(file));
             notes_.emplace_back(make_shared<NoteItem>(shared_from_this(), relative_path));
