@@ -137,7 +137,7 @@ void VaultItem::onDirectoryChanged()
 
     // Build note items
 
-    INFO << "Indexing Obsidian notes in " << path << identifier;
+    INFO << "Indexing Obsidian notes in" << path << identifier;
 
     notes_.clear();
 
@@ -186,6 +186,9 @@ static vector<shared_ptr<VaultItem>> getVaults()
         for (auto it = vaults_object.begin(); it != vaults_object.end(); ++it)
             vaults.emplace_back(make_shared<VaultItem>(it.key(), it.value()["path"_L1].toString()));
     }
+
+    for (const auto &v : vaults)
+        DEBG << "Found vault:" << v->getName() << v->path;
 
     return vaults;
 }
