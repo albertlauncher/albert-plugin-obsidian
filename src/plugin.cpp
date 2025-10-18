@@ -9,47 +9,35 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUrl>
-#include <albert/albert.h>
+#include <albert/app.h>
 #include <albert/iconutil.h>
 #include <albert/logging.h>
 #include <albert/networkutil.h>
 #include <albert/standarditem.h>
 #include <albert/systemutil.h>
+#include <ranges>
 ALBERT_LOGGING_CATEGORY("obsidian")
 class NoteItem;
 using namespace Qt::StringLiterals;
 using namespace albert;
 using namespace std;
 
-class VaultItem : public QObject,
-                  public enable_shared_from_this<VaultItem>,
-                  public albert::Item
+class VaultItem : public albert::Item
 {
-    Q_OBJECT
-
 public:
     const QString identifier;
     const QString path;
+    const QString name;
 
-    VaultItem(const QString &identifier_, const QString &path_):
-        identifier(identifier_),
-        path(path_)
-    {
-        QObject::connect(&watcher_, &QFileSystemWatcher::directoryChanged,
-                         this, &VaultItem::onDirectoryChanged);
-    }
-
-    inline QString getName() const { return QFileInfo(path).fileName(); }
-
-    inline QString getLocation() const { return QFileInfo(path).filePath(); }
-
-    const vector<shared_ptr<NoteItem>> &notes() const { return notes_; }
-
-    void onDirectoryChanged(); // Out of line. requires NoteItem definition
+    VaultItem(const QString &id, const QFileInfo &file_info):
+        identifier(id),
+        path(file_info.filePath()),
+        name(file_info.fileName())
+    {}
 
     QString id() const override { return identifier; }
 
-    QString text() const override { return getName(); }
+    QString text() const override { return name; }
 
     QString subtext() const override { return path; }
 
@@ -72,13 +60,6 @@ public:
             );
         return actions;
     }
-
-private:
-    QFileSystemWatcher watcher_;
-    vector<shared_ptr<NoteItem>> notes_;
-
-signals:
-    void notesChanged();
 };
 
 
@@ -86,19 +67,21 @@ class NoteItem : public albert::Item
 {
 public:
     const shared_ptr<VaultItem> vault;
-    const QString path;
+    const QString relative_path;
 
-    NoteItem(shared_ptr<VaultItem> vault_, const QString &path_):
-        vault(vault_), path(path_) {}
+    NoteItem(shared_ptr<VaultItem> v, const QString &file_path) :
+        vault(v),
+        relative_path(QDir(v->path).relativeFilePath(file_path))
+    {}
 
     QString id() const override
-    { return vault->path + path; }
+    { return vault->path + relative_path; }
 
     QString text() const override
-    { return QFileInfo(path).completeBaseName(); }
+    { return QFileInfo(relative_path).completeBaseName(); }
 
     QString subtext() const override
-    { return u"%1 · %2"_s.arg(vault->getName(), path); }
+    { return u"%1 · %2"_s.arg(vault->name, relative_path); }
 
     unique_ptr<Icon> icon() const override
     { return makeImageIcon(u":obsidian-note"_s); }
@@ -110,66 +93,31 @@ public:
                  [this]{
                      openUrl(u"obsidian://open?vault=%1&file=%2"_s
                                  .arg(percentEncoded(vault->identifier),
-                                      percentEncoded(path)));
+                                      percentEncoded(relative_path)));
                  }
         }};
     }
 };
 
-
-void VaultItem::onDirectoryChanged()
-{
-    // Update watches
-
-    if (const auto dirs = watcher_.directories();
-        !dirs.isEmpty())
-        watcher_.removePaths(dirs);
-
-    QStringList dirs;
-    QDirIterator dit(path, QDir::NoDotAndDotDot | QDir::Dirs, QDirIterator::Subdirectories);
-    while (dit.hasNext())
-        dirs << dit.next();
-    dirs << path;
-
-    if (!dirs.isEmpty())
-        watcher_.addPaths(dirs);
-
-    // Build note items
-
-    INFO << "Indexing Obsidian notes in" << path << identifier;
-
-    notes_.clear();
-
-    for (const auto &dir : as_const(dirs))
-        for (const auto files = QDir(dir).entryList(QDir::Files);
-             const auto &file : files)
-        {
-            const auto relative_path = QDir(path).relativeFilePath(QDir(dir).filePath(file));
-            notes_.emplace_back(make_shared<NoteItem>(shared_from_this(), relative_path));
-        }
-
-    emit notesChanged();
-}
-
-
 // -------------------------------------------------------------------------------------------------
 
-static vector<shared_ptr<VaultItem>> getVaults()
+filesystem::path obsidianConfigPath()
 {
     auto obsidian_json =
 #ifdef Q_OS_MAC
-        albert::dataLocation().parent_path();
+        App::dataLocation().parent_path();
 #elifdef Q_OS_UNIX
-        albert::configLocation().parent_path();
+        App::configLocation().parent_path();
     if (!exists(obsidian_json))
         obsidian_json = QDir::home().filesystemPath() / ".var" / "app" / "md.obsidian.Obsidian" / "config";
 #endif
     obsidian_json = obsidian_json / "obsidian" / "obsidian.json";
+    return obsidian_json;
+}
 
-    if (!exists(obsidian_json))
-        throw runtime_error("Obsidian JSON file not found at " + obsidian_json.string());
-
-    vector<shared_ptr<VaultItem>> vaults;
+static vector<shared_ptr<VaultItem>> readVaults(filesystem::path obsidian_json)
+{
+    decltype(readVaults(filesystem::path())) vaults;
 
     QFile file(obsidian_json);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -178,69 +126,99 @@ static vector<shared_ptr<VaultItem>> getVaults()
         const auto doc = QJsonDocument::fromJson(file.readAll(), &error);
 
         if (error.error != QJsonParseError::NoError)
-            throw runtime_error("Failed to parse Obsidian JSON file: "
-                                + error.errorString().toStdString());
+            WARN << u"Failed to parse Obsidian JSON file: "_s << error.errorString();
 
         const auto vaults_object = doc.object().value("vaults"_L1).toObject();
-        for (auto it = vaults_object.begin(); it != vaults_object.end(); ++it)
-            vaults.emplace_back(make_shared<VaultItem>(it.key(), it.value()["path"_L1].toString()));
-    }
 
-    for (const auto &v : vaults)
-        DEBG << "Found vault:" << v->getName() << v->path;
+        for (auto it = vaults_object.begin(); it != vaults_object.end(); ++it)
+            vaults.emplace_back(make_shared<VaultItem>(
+                it.key(), QFileInfo(it.value()["path"_L1].toString())));
+    }
 
     return vaults;
 }
 
-Plugin::Plugin() : vaults(getVaults())  // Throws
+Plugin::Plugin()
 {
-    for (auto &vault : vaults)
-    {
-        vault->onDirectoryChanged();
-        connect(vault.get(), &VaultItem::notesChanged,
-                this, &Plugin::updateIndexItems);
-    }
+    if (const auto config = obsidianConfigPath(); !exists(config))
+        throw runtime_error("Obsidian JSON file not found at " + config.string());
+
+    connect(&watcher, &QFileSystemWatcher::directoryChanged,
+            this, &Plugin::updateIndexItems);
+}
+
+static shared_ptr<Item> makeAddNoteItem(const VaultItem &v, const QString &path)
+{
+    return StandardItem::make(
+        u"new"_s,
+        Plugin::tr("Create new note in '%1'").arg(v.name),
+        u"%1 · %2"_s.arg(QFileInfo(v.name).filePath(), path + u".md"_s),
+        [] { return makeImageIcon(u":obsidian-note-add"_s); },
+        {{u"create"_s,
+          Plugin::tr("Create"),
+          [v, path] {
+              openUrl(u"obsidian://new?vault=%1&file=%2"_s.arg(percentEncoded(v.id()),
+                                                               percentEncoded(path)));
+          }}},
+        u""_s  // disable completion
+    );
+}
+
+vector<RankItem> Plugin::handleGlobalQuery(Query &query)
+{
+    vector<RankItem> matches = IndexQueryHandler::handleGlobalQuery(query);
+
+    if (!query.trigger().isEmpty())
+        if (const auto trimmed = query.string().trimmed();
+            !trimmed.isEmpty())
+        {
+            auto view = vaults
+                        | views::transform([&](auto &vault)
+                                           { return RankItem(makeAddNoteItem(*vault, trimmed), .0); });
+            matches.append_range(view);
+        }
+
+    return matches;
 }
 
 void Plugin::updateIndexItems()
 {
+    vaults = readVaults(obsidianConfigPath());
+    vector<shared_ptr<NoteItem>> notes;
+    QStringList watched_dirs;
+
+    for (auto &vault : vaults)
+    {
+        QDirIterator dit(vault->path,
+                         QDir::NoDotAndDotDot | QDir::Dirs | QDir::Files,
+                         QDirIterator::Subdirectories);
+
+        while (dit.hasNext())
+        {
+            auto file_info = dit.nextFileInfo();
+            if (file_info.isDir())
+                watched_dirs << file_info.filePath();
+            else if (/*file_info.isFile() && */file_info.suffix().toLower() == u"md"_s)
+                notes.emplace_back(make_shared<NoteItem>(vault, file_info.filePath()));
+        }
+    }
+
+
+    if (const auto dirs = watcher.directories(); !dirs.isEmpty())
+        watcher.removePaths(dirs);
+    if (!watched_dirs.isEmpty())
+        watcher.addPaths(watched_dirs);
+
     vector<IndexItem> r;
     for (const auto &v : vaults)
     {
-        r.emplace_back(v, v->getName());
-        for (const auto &note : v->notes())
+        r.emplace_back(v, v->name);
+        for (const auto &note : notes)
         {
             r.emplace_back(note, note->text());  // index by name
-            r.emplace_back(note, note->path);  // index by path
+            r.emplace_back(note, note->relative_path);  // index by path
         }
     }
 
     setIndexItems(::move(r));
 }
-
-void Plugin::handleThreadedQuery(ThreadedQuery &query)
-{
-    GlobalQueryHandler::handleThreadedQuery(query);
-
-    const auto trimmed = query.string().trimmed();
-    if (!trimmed.isEmpty())
-        for (const auto &v : vaults)
-            query.add(StandardItem::make(
-                u"new"_s,
-                tr("Create new note in '%1'").arg(v->getName()),
-                u"%1 · %2"_s.arg(QFileInfo(v->getName()).filePath(), trimmed + u".md"_s),
-                []{ return makeImageIcon(u":obsidian-note-add"_s); },
-                {{
-                    u"create"_s,
-                    tr("Create"),
-                    [v, trimmed] {
-                        openUrl(u"obsidian://new?vault=%1&file=%2"_s
-                                  .arg(percentEncoded(v->id()),
-                                       percentEncoded(trimmed)));
-                    }
-                }},
-                u""_s  // disable completion
-            ));
-}
-
-#include "plugin.moc"

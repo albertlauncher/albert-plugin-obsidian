@@ -1,10 +1,11 @@
 // Copyright (c) 2025-2025 Manuel Schneider
 
 #pragma once
+#include <QFileSystemWatcher>
 #include <albert/extensionplugin.h>
 #include <albert/indexqueryhandler.h>
-#include <vector>
 #include <memory>
+#include <vector>
 class VaultItem;
 
 class Plugin : public albert::ExtensionPlugin,
@@ -17,8 +18,9 @@ public:
     Plugin();
 
     void updateIndexItems() override;
-    void handleThreadedQuery(albert::ThreadedQuery &) override;
+    std::vector<albert::RankItem> handleGlobalQuery(albert::Query &) override;
 
-    const std::vector<std::shared_ptr<VaultItem>> vaults;
+    QFileSystemWatcher watcher;
+    std::vector<std::shared_ptr<VaultItem>> vaults;
 
 };
