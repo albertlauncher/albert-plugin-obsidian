@@ -18,7 +18,6 @@
 ALBERT_LOGGING_CATEGORY("obsidian")
 class NoteItem;
 using namespace Qt::StringLiterals;
-using namespace albert::util;
 using namespace albert;
 using namespace std;
 
@@ -219,9 +218,9 @@ void Plugin::updateIndexItems()
     setIndexItems(::move(r));
 }
 
-void Plugin::handleTriggerQuery(albert::Query &query)
+void Plugin::handleThreadedQuery(ThreadedQuery &query)
 {
-    GlobalQueryHandler::handleTriggerQuery(query);
+    GlobalQueryHandler::handleThreadedQuery(query);
 
     const auto trimmed = query.string().trimmed();
     if (!trimmed.isEmpty())

@@ -7,8 +7,8 @@
 #include <memory>
 class VaultItem;
 
-class Plugin : public albert::util::ExtensionPlugin,
-               public albert::util::IndexQueryHandler
+class Plugin : public albert::ExtensionPlugin,
+               public albert::IndexQueryHandler
 {
     ALBERT_PLUGIN
 
@@ -17,7 +17,7 @@ public:
     Plugin();
 
     void updateIndexItems() override;
-    void handleTriggerQuery(albert::Query &) override;
+    void handleThreadedQuery(albert::ThreadedQuery &) override;
 
     const std::vector<std::shared_ptr<VaultItem>> vaults;
 
