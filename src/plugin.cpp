@@ -175,7 +175,8 @@ vector<RankItem> Plugin::rankItems(QueryContext &ctx)
             auto view = vaults
                         | views::transform([&](auto &vault)
                                            { return RankItem(makeAddNoteItem(*vault, trimmed), .0); });
-            matches.append_range(view);
+            matches.insert(matches.end(), view.begin(), view.end()); // TODO: 26.04
+            // matches.append_range(view);
         }
 
     return matches;
