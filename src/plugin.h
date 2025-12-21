@@ -18,7 +18,7 @@ public:
     Plugin();
 
     void updateIndexItems() override;
-    std::vector<albert::RankItem> handleGlobalQuery(albert::Query &) override;
+    std::vector<albert::RankItem> rankItems(albert::QueryContext &) override;
 
     QFileSystemWatcher watcher;
     std::vector<std::shared_ptr<VaultItem>> vaults;

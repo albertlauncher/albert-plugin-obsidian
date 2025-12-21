@@ -164,12 +164,12 @@ static shared_ptr<Item> makeAddNoteItem(const VaultItem &v, const QString &path)
     );
 }
 
-vector<RankItem> Plugin::handleGlobalQuery(Query &query)
+vector<RankItem> Plugin::rankItems(QueryContext &ctx)
 {
-    vector<RankItem> matches = IndexQueryHandler::handleGlobalQuery(query);
+    vector<RankItem> matches = IndexQueryHandler::rankItems(ctx);
 
-    if (!query.trigger().isEmpty())
-        if (const auto trimmed = query.string().trimmed();
+    if (!ctx.trigger().isEmpty())
+        if (const auto trimmed = ctx.query().trimmed();
             !trimmed.isEmpty())
         {
             auto view = vaults
