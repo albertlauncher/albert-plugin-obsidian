@@ -23,5 +23,9 @@
         <source>Open in file manager</source>
         <translation>In Dateimanager öffnen</translation>
     </message>
+    <message>
+        <source>No config file found.</source>
+        <translation>Keine Konfigurationsdatei gefunden.</translation>
+    </message>
 </context>
 </TS>

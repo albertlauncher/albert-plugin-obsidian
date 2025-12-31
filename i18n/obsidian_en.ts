@@ -23,5 +23,9 @@
         <source>Open in file manager</source>
         <translation></translation>
     </message>
+    <message>
+        <source>No config file found.</source>
+        <translation></translation>
+    </message>
 </context>
 </TS>

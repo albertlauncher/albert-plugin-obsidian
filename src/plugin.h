@@ -21,6 +21,7 @@ public:
     std::vector<albert::RankItem> rankItems(albert::QueryContext &) override;
 
     QFileSystemWatcher watcher;
+    QString config_path;
     std::vector<std::shared_ptr<VaultItem>> vaults;
 
 };

@@ -101,25 +101,11 @@ public:
 
 // -------------------------------------------------------------------------------------------------
 
-filesystem::path obsidianConfigPath()
+static vector<shared_ptr<VaultItem>> readVaults(QString config_path)
 {
-    auto obsidian_json =
-#ifdef Q_OS_MAC
-        App::dataLocation().parent_path();
-#elifdef Q_OS_UNIX
-        App::configLocation().parent_path();
-    if (!exists(obsidian_json))
-        obsidian_json = QDir::home().filesystemPath() / ".var" / "app" / "md.obsidian.Obsidian" / "config";
-#endif
-    obsidian_json = obsidian_json / "obsidian" / "obsidian.json";
-    return obsidian_json;
-}
+    vector<shared_ptr<VaultItem>> vaults;
 
-static vector<shared_ptr<VaultItem>> readVaults(filesystem::path obsidian_json)
-{
-    decltype(readVaults(filesystem::path())) vaults;
-
-    QFile file(obsidian_json);
+    QFile file(config_path);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         QJsonParseError error;
@@ -140,8 +126,34 @@ static vector<shared_ptr<VaultItem>> readVaults(filesystem::path obsidian_json)
 
 Plugin::Plugin()
 {
-    if (const auto config = obsidianConfigPath(); !exists(config))
-        throw runtime_error("Obsidian JSON file not found at " + config.string());
+    vector<filesystem::path> base_dirs =
+#ifdef Q_OS_MAC
+        {
+            App::dataLocation().parent_path()
+        };
+#elifdef Q_OS_UNIX
+        {
+            App::configLocation().parent_path(),
+            QDir::home().filesystemPath() / ".var" / "app" / "md.obsidian.Obsidian" / "config",
+            QDir::home().filesystemPath() / "snap" / "obsidian" / "current" / ".config"
+        };
+#endif
+
+    auto configs = base_dirs | views::transform([](const filesystem::path &p)
+                                                { return p / "obsidian" / "obsidian.json"; });
+
+    if (auto it = ranges::find_if(configs, [](const filesystem::path &p){ return exists(p); });
+        it != configs.end())
+    {
+        config_path = QString::fromStdString((*it).string());
+        DEBG << "Using config file at" << config_path;
+    }
+    else
+    {
+        const char* msg = QT_TR_NOOP("No config file found.");
+        WARN << msg;
+        throw runtime_error(tr(msg).toStdString());
+    }
 
     connect(&watcher, &QFileSystemWatcher::directoryChanged,
             this, &Plugin::updateIndexItems);
@@ -184,7 +196,7 @@ vector<RankItem> Plugin::rankItems(QueryContext &ctx)
 
 void Plugin::updateIndexItems()
 {
-    vaults = readVaults(obsidianConfigPath());
+    vaults = readVaults(config_path);
     vector<shared_ptr<NoteItem>> notes;
     QStringList watched_dirs;
 
