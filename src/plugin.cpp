@@ -10,7 +10,7 @@
 #include <QJsonObject>
 #include <QUrl>
 #include <albert/app.h>
-#include <albert/iconutil.h>
+#include <albert/icon.h>
 #include <albert/logging.h>
 #include <albert/networkutil.h>
 #include <albert/standarditem.h>
@@ -41,7 +41,7 @@ public:
 
     QString subtext() const override { return path; }
 
-    unique_ptr<Icon> icon() const override { return makeImageIcon(u":obsidian-vault"_s); }
+    unique_ptr<Icon> icon() const override { return Icon::image(u":obsidian-vault"_s); }
 
     vector<Action> actions() const override
     {
@@ -84,7 +84,7 @@ public:
     { return u"%1 · %2"_s.arg(vault->name, relative_path); }
 
     unique_ptr<Icon> icon() const override
-    { return makeImageIcon(u":obsidian-note"_s); }
+    { return Icon::image(u":obsidian-note"_s); }
 
     vector<Action> actions() const override
     {
@@ -165,7 +165,7 @@ static shared_ptr<Item> makeAddNoteItem(const VaultItem &v, const QString &path)
         u"new"_s,
         Plugin::tr("Create new note in '%1'").arg(v.name),
         u"%1 · %2"_s.arg(QFileInfo(v.name).filePath(), path + u".md"_s),
-        [] { return makeImageIcon(u":obsidian-note-add"_s); },
+        [] { return Icon::image(u":obsidian-note-add"_s); },
         {{u"create"_s,
           Plugin::tr("Create"),
           [v, path] {
