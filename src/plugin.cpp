@@ -176,7 +176,7 @@ static shared_ptr<Item> makeAddNoteItem(const VaultItem &v, const QString &path)
     );
 }
 
-vector<RankItem> Plugin::rankItems(QueryContext &ctx)
+vector<RankItem> Plugin::rankItems(QueryContext ctx)
 {
     vector<RankItem> matches = IndexQueryHandler::rankItems(ctx);
 

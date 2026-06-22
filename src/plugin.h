@@ -18,7 +18,7 @@ public:
     Plugin();
 
     void updateIndexItems() override;
-    std::vector<albert::RankItem> rankItems(albert::QueryContext &) override;
+    std::vector<albert::RankItem> rankItems(albert::QueryContext) override;
 
     QFileSystemWatcher watcher;
     QString config_path;
