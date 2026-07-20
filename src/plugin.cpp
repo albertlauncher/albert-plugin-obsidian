@@ -129,11 +129,11 @@ Plugin::Plugin()
     vector<filesystem::path> base_dirs =
 #ifdef Q_OS_MAC
         {
-            App::dataLocation().parent_path()
+            app().dataLocation().parent_path()
         };
 #elifdef Q_OS_UNIX
         {
-            App::configLocation().parent_path(),
+            app().configLocation().parent_path(),
             QDir::home().filesystemPath() / ".var" / "app" / "md.obsidian.Obsidian" / "config",
             QDir::home().filesystemPath() / "snap" / "obsidian" / "current" / ".config"
         };
