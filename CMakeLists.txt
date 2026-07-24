@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(obsidian VERSION 1.2.0)
+project(obsidian VERSION 1.3.0)
 
 find_package(Albert REQUIRED)
 
