@@ -127,7 +127,7 @@ static vector<shared_ptr<VaultItem>> readVaults(QString config_path)
 Plugin::Plugin()
 {
     vector<filesystem::path> base_dirs =
-#ifdef Q_OS_MAC
+#ifdef Q_OS_MACOS
         {
             app().dataLocation().parent_path()
         };
